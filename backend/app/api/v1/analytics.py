@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.ai_system import AISystem, ComplianceStatus, RiskLevel
 from app.models.user import User
 from app.schemas.analytics import ComplianceTimelineResponse
 
@@ -62,7 +63,27 @@ def get_analytics_summary(
     Returns:
         Aggregate compliance statistics for the user's AI systems.
     """
-    # TODO: implement
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented yet"
+    systems = db.query(AISystem).filter(AISystem.owner_id == current_user.id).all()
+
+    counts = {risk.value: 0 for risk in RiskLevel}
+    compliance_statuses = {status.value: 0 for status in ComplianceStatus}
+    scored_values: list[float] = []
+
+    for system in systems:
+        if system.risk_level:
+            counts[system.risk_level.value] += 1
+        if system.compliance_status:
+            compliance_statuses[system.compliance_status.value] += 1
+        if system.compliance_score is not None:
+            scored_values.append(float(system.compliance_score))
+
+    average_compliance_score = (
+        round(sum(scored_values) / len(scored_values), 2) if scored_values else 0.0
     )
+
+    return {
+        "total_systems": len(systems),
+        "average_compliance_score": average_compliance_score,
+        "counts": counts,
+        "compliance_statuses": compliance_statuses,
+    }

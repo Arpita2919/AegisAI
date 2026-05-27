@@ -14,6 +14,7 @@ from app.schemas.document import (
     DocumentCreate,
     DocumentResponse,
     DocumentGenerateRequest,
+    DocumentTemplateResponse,
     DocumentUpdateRequest,
 )
 from app.schemas.pagination import PaginatedResponse
@@ -214,6 +215,30 @@ def list_documents(
     return PaginatedResponse(items=documents, total=total, page=page, limit=limit)
 
 
+@router.get("/templates", response_model=List[DocumentTemplateResponse])
+def list_document_templates(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the document templates supported by the generator."""
+    return [
+        {
+            "type": DocumentType.TECHNICAL_DOCUMENTATION,
+            "name": "Technical Documentation",
+            "description": "EU AI Act technical documentation for an AI system.",
+        },
+        {
+            "type": DocumentType.RISK_ASSESSMENT,
+            "name": "Risk Assessment",
+            "description": "Structured risk assessment summary and mitigation plan.",
+        },
+        {
+            "type": DocumentType.CONFORMITY_DECLARATION,
+            "name": "Conformity Declaration",
+            "description": "EU declaration of conformity template for provider records.",
+        },
+    ]
+
+
 @router.get("/{document_id}", response_model=DocumentResponse)
 def get_document(
     document_id: int,
@@ -285,7 +310,11 @@ def update_document(
     
     return document
 
-@router.post("/generate", response_model=DocumentResponse)
+@router.post(
+    "/generate",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def generate_document(
     request: DocumentGenerateRequest,
     db: Session = Depends(get_db),
