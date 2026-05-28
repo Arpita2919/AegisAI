@@ -13,8 +13,7 @@ import hashlib
 import logging
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
-
+from typing import Optional, TypedDict
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -246,8 +245,6 @@ def guard_health():
     return {"module": "llm_guard", "status": "available"}
 
 
-
-
 @router.get("/info", tags=["LLM Guard"])
 def guard_info():
     """Return diagnostic information about the Guard module.
@@ -284,7 +281,7 @@ def get_guard_history(
     """Return the current user's Guard scan history, newest first.
 
     Args:
-        page: Page number to return, starting at 1.
+        skip: Number of items to skip for pagination.
         limit: Maximum number of scan logs to include per page.
         db: Database session used to query scan history.
         current_user: Authenticated user whose history is requested.
@@ -298,7 +295,7 @@ def get_guard_history(
 
     total = base_query.count()
     logs = (
-        base_query.order_by(GuardScanLog.created_at.desc())
+        base_query.order_by(GuardScanLog.scanned_at.desc())  # FIX: use indexed scanned_at
         .offset(skip)
         .limit(limit)
         .all()
@@ -616,7 +613,7 @@ def bulk_scan_prompts(
 
     except Exception as e:
         db.rollback()
-        logger.exception("Bulk guard scan failed")                                     
+        logger.exception("Bulk guard scan failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An internal error occurred while processing the batch Guard scan."
