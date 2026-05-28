@@ -191,7 +191,7 @@ def create_document(
 
 @router.get("/", response_model=PaginatedResponse[DocumentResponse])
 def list_documents(
-    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    skip: int = Query(0, ge=0, description="Items to skip"),
     limit: int = Query(50, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -199,7 +199,7 @@ def list_documents(
     """List the current user's documents with pagination.
 
     Args:
-        page: Page number to return, starting at 1.
+        skip: Number of documents to skip.
         limit: Maximum number of documents to return per page.
         db: Database session used to query documents.
         current_user: Authenticated user whose documents are being listed.
@@ -209,33 +209,29 @@ def list_documents(
     """
     base_query = db.query(Document).filter(Document.owner_id == current_user.id)
     total = base_query.count()
-    offset = (page - 1) * limit
 
-    documents = base_query.offset(offset).limit(limit).all()
-    return PaginatedResponse(items=documents, total=total, page=page, limit=limit)
+    documents = base_query.offset(skip).limit(limit).all()
+    return PaginatedResponse(items=documents, total=total, skip=skip, limit=limit)
 
 
 @router.get("/templates", response_model=List[DocumentTemplateResponse])
 def list_document_templates(
     current_user: User = Depends(get_current_user),
 ):
-    """Return the document templates supported by the generator."""
+    """List available document templates for generation."""
+    descriptions = {
+        DocumentType.TECHNICAL_DOCUMENTATION: "Generate technical documentation for an AI system.",
+        DocumentType.RISK_ASSESSMENT: "Generate a risk assessment report for an AI system.",
+        DocumentType.CONFORMITY_DECLARATION: "Generate an EU declaration of conformity for an AI system.",
+    }
+
     return [
-        {
-            "type": DocumentType.TECHNICAL_DOCUMENTATION,
-            "name": "Technical Documentation",
-            "description": "EU AI Act technical documentation for an AI system.",
-        },
-        {
-            "type": DocumentType.RISK_ASSESSMENT,
-            "name": "Risk Assessment",
-            "description": "Structured risk assessment summary and mitigation plan.",
-        },
-        {
-            "type": DocumentType.CONFORMITY_DECLARATION,
-            "name": "Conformity Declaration",
-            "description": "EU declaration of conformity template for provider records.",
-        },
+        DocumentTemplateResponse(
+            type=document_type,
+            name=document_type.value.replace("_", " ").title(),
+            description=descriptions[document_type],
+        )
+        for document_type in DOCUMENT_TEMPLATES.keys()
     ]
 
 

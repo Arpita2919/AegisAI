@@ -80,7 +80,7 @@ export const aiSystemsApi = {
   list: async (params?: {
     sort_by?: string
     order?: string
-    page?: number
+    skip?: number
     limit?: number
   }) => {
     const { data } = await api.get('/ai-systems/', { params })
@@ -122,8 +122,8 @@ export const classificationApi = {
 
 // Documents API
 export const documentsApi = {
-  list: async () => {
-    const { data } = await api.get('/documents/')
+  list: async (params?: { skip?: number; limit?: number }) => {
+    const { data } = await api.get('/documents/', { params })
     return ensureListResponse(data, 'Documents')
   },
   get: async (id: number) => {

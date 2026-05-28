@@ -1,6 +1,14 @@
 """LLM Guard package for prompt injection detection and mitigation."""
 
-__all__ = ["RegexFilter", "IntentClassifier", "DecisionEngine", "PromptSanitizer"]
+from importlib import import_module
+
+__all__ = [
+    "RegexFilter",
+    "IntentClassifier",
+    "DecisionEngine",
+    "PromptSanitizer",
+    "llm_guard",
+]
 
 
 def __getattr__(name):
@@ -21,4 +29,6 @@ def __getattr__(name):
         from .sanitizer import PromptSanitizer
 
         return PromptSanitizer
+    if name == "llm_guard":
+        return import_module(".llm_guard", __name__)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

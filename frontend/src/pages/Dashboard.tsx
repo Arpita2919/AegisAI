@@ -32,7 +32,7 @@ export default function Dashboard() {
     refetch: refetchDocuments,
   } = useQuery({
     queryKey: ['documents'],
-    queryFn: documentsApi.list,
+    queryFn: () => documentsApi.list(),
   })
   const documents = (
     Array.isArray(documentsData) ? documentsData : (documentsData?.items ?? [])
